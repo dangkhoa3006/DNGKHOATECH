@@ -45,3 +45,5 @@ next-env.d.ts
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+!/public/uploads/avatars/.gitkeep
+!/public/uploads/products/.gitkeep

@@ -10,6 +10,9 @@ import {
   Settings,
   Image,
   Package,
+  Tag,
+  ShoppingCart,
+  Menu,
 } from "lucide-react"
 
 const navItems = [
@@ -19,27 +22,42 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Posts",
-    href: "/cms/posts",
-    icon: FileText,
-  },
-  {
-    title: "Media",
-    href: "/cms/media",
-    icon: Image,
-  },
-  {
-    title: "Users",
-    href: "/cms/users",
-    icon: Users,
-  },
-  {
-    title: "Products",
+    title: "Sản phẩm",
     href: "/cms/products",
     icon: Package,
   },
   {
-    title: "Settings",
+    title: "Danh mục",
+    href: "/cms/categories",
+    icon: Tag,
+  },
+  {
+    title: "Bài viết",
+    href: "/cms/articles",
+    icon: FileText,
+  },
+  {
+    title: "Banner",
+    href: "/cms/banners",
+    icon: Image,
+  },
+  {
+    title: "Đơn hàng",
+    href: "/cms/orders",
+    icon: ShoppingCart,
+  },
+  {
+    title: "Người dùng",
+    href: "/cms/users",
+    icon: Users,
+  },
+  {
+    title: "Menu",
+    href: "/cms/menu",
+    icon: Menu,
+  },
+  {
+    title: "Cài đặt",
     href: "/cms/settings",
     icon: Settings,
   },

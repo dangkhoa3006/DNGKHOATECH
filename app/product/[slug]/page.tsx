@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { CheckCircle, Truck, Shield, RefreshCcw } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -9,10 +10,116 @@ import { serializeProduct } from "@/lib/serializers";
 import { SiteHeader } from "@/components/store/site-header";
 import { SiteFooter } from "@/components/store/site-footer";
 import { ProductCard } from "@/components/store/product-card";
+import { ProductVariantSelector } from "@/components/store/product-variant-selector";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+// Get base URL for canonical and OG images
+function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+}
+
+// Generate metadata for SEO
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: {
+      images: { orderBy: { isPrimary: "desc" } },
+      brand: true,
+      category: true,
+    },
+  });
+
+  if (!product) {
+    return {
+      title: "Sản phẩm không tồn tại",
+    };
+  }
+
+  const baseUrl = getBaseUrl();
+  const mainImage = product.images.find((img) => img.isPrimary) ?? product.images[0];
+  const imageUrl = mainImage ? (mainImage.url.startsWith("http") ? mainImage.url : `${baseUrl}${mainImage.url}`) : `${baseUrl}/og-image.jpg`;
+  
+  const price = product.discountPrice ? Number(product.discountPrice) : Number(product.price);
+  const originalPrice = product.discountPrice ? Number(product.price) : undefined;
+  
+  const title = `${product.name} - ${product.brand?.name || "Sản phẩm"} | ${process.env.NEXT_PUBLIC_SITE_NAME || "CMS E-commerce"}`;
+  const description = product.shortDesc || product.description || `${product.name} - ${formatCurrency(price)}. ${product.category.name}. Mua ngay với giá tốt nhất!`;
+  
+  const keywords = [
+    product.name,
+    product.brand?.name,
+    product.category.name,
+    "mua online",
+    "giá rẻ",
+    "chính hãng",
+  ].filter(Boolean).join(", ");
+
+  return {
+    title,
+    description,
+    keywords,
+    authors: [{ name: process.env.NEXT_PUBLIC_SITE_NAME || "CMS E-commerce" }],
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${baseUrl}/product/${product.slug}`,
+      siteName: process.env.NEXT_PUBLIC_SITE_NAME || "CMS E-commerce",
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
+      type: "website",
+      locale: "vi_VN",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
+    },
+    alternates: {
+      canonical: `${baseUrl}/product/${product.slug}`,
+    },
+    other: {
+      "product:price:amount": price.toString(),
+      "product:price:currency": "VND",
+      ...(originalPrice && {
+        "product:original_price:amount": originalPrice.toString(),
+        "product:original_price:currency": "VND",
+      }),
+      "product:availability": product.stock > 0 ? "in stock" : "out of stock",
+      "product:condition": "new",
+      "product:brand": product.brand?.name || "",
+      "product:category": product.category.name,
+    },
+  };
+}
 
 function formatSpecs(specs: unknown) {
   if (!specs || typeof specs !== "object") return [] as Array<[string, string]>;
@@ -60,22 +167,113 @@ export default async function ProductDetailPage({ params }: Props) {
   const specs = formatSpecs(product.specs);
 
   const mainImage = product.images.find((image) => image.isPrimary) ?? product.images[0] ?? null;
+  const baseUrl = getBaseUrl();
+  const imageUrl = mainImage ? (mainImage.url.startsWith("http") ? mainImage.url : `${baseUrl}${mainImage.url}`) : `${baseUrl}/og-image.jpg`;
+  const price = product.discountPrice ? Number(product.discountPrice) : Number(product.price);
+  const originalPrice = product.discountPrice ? Number(product.price) : undefined;
+
+  // Structured Data (JSON-LD) for Product
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.shortDesc || product.description || product.name,
+    image: product.images.map((img) => (img.url.startsWith("http") ? img.url : `${baseUrl}${img.url}`)),
+    brand: product.brand
+      ? {
+          "@type": "Brand",
+          name: product.brand.name,
+        }
+      : undefined,
+    category: product.category.name,
+    offers: {
+      "@type": "Offer",
+      url: `${baseUrl}/product/${product.slug}`,
+      priceCurrency: "VND",
+      price: price.toString(),
+      priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: {
+        "@type": "Organization",
+        name: process.env.NEXT_PUBLIC_SITE_NAME || "CMS E-commerce",
+      },
+    },
+    aggregateRating: product.rating > 0
+      ? {
+          "@type": "AggregateRating",
+          ratingValue: product.rating.toString(),
+          reviewCount: product.sold.toString(),
+        }
+      : undefined,
+    sku: product.slug,
+    mpn: product.id.toString(),
+  };
+
+  // Breadcrumb Structured Data
+  const breadcrumbStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Trang chủ",
+        item: `${baseUrl}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: product.category.name,
+        item: `${baseUrl}/category/${product.category.slug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name,
+        item: `${baseUrl}/product/${product.slug}`,
+      },
+    ],
+  };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <SiteHeader />
-      <main className="container mx-auto px-4 py-10">
-        <nav className="text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-primary">
-            Trang chủ
-          </Link>
-          <span className="px-2">/</span>
-          <Link href={`/category/${product.category.slug}`} className="hover:text-primary">
-            {product.category.name}
-          </Link>
-          <span className="px-2">/</span>
-          <span className="text-foreground">{product.name}</span>
-        </nav>
+    <>
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbStructuredData) }}
+      />
+
+      <div className="min-h-screen bg-muted/30">
+        <SiteHeader />
+        <main className="container mx-auto px-4 py-10">
+          {/* Breadcrumbs with structured data */}
+          <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
+            <ol className="flex items-center space-x-2" itemScope itemType="https://schema.org/BreadcrumbList">
+              <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                <Link href="/" className="hover:text-primary" itemProp="item">
+                  <span itemProp="name">Trang chủ</span>
+                </Link>
+                <meta itemProp="position" content="1" />
+              </li>
+              <span className="px-2">/</span>
+              <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                <Link href={`/category/${product.category.slug}`} className="hover:text-primary" itemProp="item">
+                  <span itemProp="name">{product.category.name}</span>
+                </Link>
+                <meta itemProp="position" content="2" />
+              </li>
+              <span className="px-2">/</span>
+              <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                <span className="text-foreground" itemProp="name">{product.name}</span>
+                <meta itemProp="position" content="3" />
+              </li>
+            </ol>
+          </nav>
 
         <div className="mt-6 grid gap-8 lg:grid-cols-[1.3fr,1fr]">
           <div className="space-y-6">
@@ -84,11 +282,13 @@ export default async function ProductDetailPage({ params }: Props) {
                 <div className="flex justify-center">
                   <Image
                     src={mainImage.url}
-                    alt={mainImage.alt ?? product.name}
+                    alt={mainImage.alt ?? `${product.name} - ${product.brand?.name || ""}`.trim()}
                     width={600}
                     height={600}
                     className="h-80 w-full max-w-md object-contain"
                     sizes="(min-width: 1024px) 480px, 80vw"
+                    priority
+                    itemProp="image"
                   />
                 </div>
               ) : (
@@ -102,7 +302,7 @@ export default async function ProductDetailPage({ params }: Props) {
                     <Image
                       key={image.id}
                       src={image.url}
-                      alt={image.alt ?? product.name}
+                      alt={image.alt ?? `${product.name} - ${product.brand?.name || ""}`.trim()}
                       width={160}
                       height={160}
                       className={`h-20 w-full rounded-lg border object-contain p-2 ${
@@ -140,40 +340,22 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="rounded-2xl bg-white p-6 shadow-sm" itemScope itemType="https://schema.org/Product">
               <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 {product.brand ? product.brand.name : "Sản phẩm chính hãng"}
               </span>
-              <h1 className="mt-3 text-2xl font-bold text-foreground">{product.name}</h1>
-              <div className="mt-3 flex items-end gap-3">
-                <span className="text-3xl font-bold text-red-500">
-                  {formatCurrency(serialized.discountPrice ?? serialized.price ?? 0)}
-                </span>
-                {serialized.discountPrice && serialized.price && serialized.discountPrice < serialized.price ? (
-                  <span className="text-sm text-muted-foreground line-through">
-                    {formatCurrency(serialized.price)}
-                  </span>
-                ) : null}
+              <h1 className="mt-3 text-2xl font-bold text-foreground" itemProp="name">{product.name}</h1>
+              
+              {/* Variant Selector với giá động */}
+              <div className="mt-3">
+                <ProductVariantSelector
+                  variants={serialized.variants}
+                  basePrice={Number(serialized.price ?? 0)}
+                  baseDiscountPrice={serialized.discountPrice ? Number(serialized.discountPrice) : null}
+                />
               </div>
+              
               <p className="mt-1 text-sm text-muted-foreground">Đã bán {product.sold} sản phẩm • Đánh giá {product.rating.toFixed(1)}/5</p>
-
-              {serialized.variants.length ? (
-                <div className="mt-4 space-y-3">
-                  <h3 className="text-sm font-semibold">Lựa chọn cấu hình</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {serialized.variants.map((variant) => (
-                      <button
-                        key={variant.id}
-                        type="button"
-                        className="rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary hover:border-primary"
-                      >
-                        {variant.name}
-                        {variant.price ? ` - ${formatCurrency(variant.price)}` : ""}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
 
               <div className="mt-6 space-y-3">
                 <button className="w-full rounded-xl bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition hover:bg-primary/90">

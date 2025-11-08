@@ -1,77 +1,130 @@
-import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { SiteFooterClient } from "./site-footer-client";
 
-const FOOTER_LINKS = [
-  {
-    title: "Hỗ trợ khách hàng",
-    items: [
-      { label: "Trung tâm trợ giúp", href: "/ho-tro" },
-      { label: "Thanh toán", href: "/huong-dan-thanh-toan" },
-      { label: "Chính sách bảo hành", href: "/bao-hanh" },
-    ],
-  },
-  {
-    title: "Về TGDD Clone",
-    items: [
-      { label: "Giới thiệu", href: "/gioi-thieu" },
-      { label: "Tuyển dụng", href: "/tuyen-dung" },
-      { label: "Liên hệ", href: "/lien-he" },
-    ],
-  },
-  {
-    title: "Hỗ trợ online",
-    items: [
-      { label: "Gọi mua hàng: 1800 1060", href: "tel:18001060" },
-      { label: "Khiếu nại: 1800 1062", href: "tel:18001062" },
-      { label: "Bảo hành: 1800 1064", href: "tel:18001064" },
-    ],
-  },
-];
+export async function SiteFooter() {
+  // Fetch menu items from database
+  let footerColumn1 = [];
+  let footerColumn2 = [];
+  let footerColumn3 = [];
+  let footerColumn4 = [];
+  let footerBottom = [];
+  let siteSettings = [];
 
-export function SiteFooter() {
+  try {
+    [footerColumn1, footerColumn2, footerColumn3, footerColumn4, footerBottom, siteSettings] =
+      await Promise.all([
+      prisma.menuItem.findMany({
+        where: {
+          position: "FOOTER_COLUMN_1",
+          isActive: true,
+          parentId: null,
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      }),
+      prisma.menuItem.findMany({
+        where: {
+          position: "FOOTER_COLUMN_2",
+          isActive: true,
+          parentId: null,
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      }),
+      prisma.menuItem.findMany({
+        where: {
+          position: "FOOTER_COLUMN_3",
+          isActive: true,
+          parentId: null,
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      }),
+      prisma.menuItem.findMany({
+        where: {
+          position: "FOOTER_COLUMN_4",
+          isActive: true,
+          parentId: null,
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      }),
+      prisma.menuItem.findMany({
+        where: {
+          position: "FOOTER_BOTTOM",
+          isActive: true,
+          parentId: null,
+        },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: {
+          children: {
+            where: { isActive: true },
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      }),
+      prisma.siteSetting.findMany({
+        where: {
+          group: { in: ["footer", "general"] },
+        },
+      }),
+    ]);
+  } catch (error) {
+    console.error("[SiteFooter] Error fetching menu/settings:", error);
+    // Fallback to empty arrays if there's an error
+  }
+
+  // Parse settings
+  const settingsMap: Record<string, any> = {};
+  siteSettings.forEach((setting) => {
+    let value: any = setting.value;
+    if (setting.type === "json") {
+      try {
+        value = JSON.parse(setting.value);
+      } catch {
+        value = setting.value;
+      }
+    } else if (setting.type === "number") {
+      value = Number(setting.value);
+    } else if (setting.type === "boolean") {
+      value = setting.value === "true";
+    }
+    settingsMap[setting.key] = value;
+  });
+
   return (
-    <footer className="border-t bg-white">
-      <div className="container mx-auto grid gap-10 px-4 py-12 md:grid-cols-4">
-        <div>
-          <Link href="/" className="text-2xl font-black text-primary">
-            TGDD Clone
-          </Link>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Hệ thống bán lẻ thiết bị di động, laptop, phụ kiện, đồng hồ chính hãng. Giao nhanh trong 2 giờ, trải nghiệm tại hơn 3.000 cửa hàng trên toàn quốc.
-          </p>
-        </div>
-        {FOOTER_LINKS.map((section) => (
-          <div key={section.title} className="space-y-3 text-sm">
-            <h3 className="font-semibold uppercase text-foreground/80">
-              {section.title}
-            </h3>
-            <ul className="space-y-2">
-              {section.items.map((item) => (
-                <li key={item.label}>
-                  <Link href={item.href} className="text-muted-foreground hover:text-primary">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <div className="bg-muted py-4">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-4 text-xs text-muted-foreground md:flex-row">
-          <span>
-            © {new Date().getFullYear()} TGDD Clone. Dự án tham khảo giao diện Thế Giới Di Động, phục vụ mục đích học tập.
-          </span>
-          <div className="flex gap-3">
-            <Link href="/chinh-sach-bao-mat" className="hover:text-primary">
-              Chính sách bảo mật
-            </Link>
-            <Link href="/dieu-khoan-su-dung" className="hover:text-primary">
-              Điều khoản sử dụng
-            </Link>
-          </div>
-        </div>
-      </div>
-    </footer>
+    <SiteFooterClient
+      footerColumns={{
+        column1: footerColumn1,
+        column2: footerColumn2,
+        column3: footerColumn3,
+        column4: footerColumn4,
+      }}
+      footerBottomMenu={footerBottom}
+      siteName={settingsMap.siteName || "TGDD Clone"}
+      siteDescription={settingsMap.siteDescription || "Hệ thống bán lẻ thiết bị di động, laptop, phụ kiện, đồng hồ chính hãng. Giao nhanh trong 2 giờ, trải nghiệm tại hơn 3.000 cửa hàng trên toàn quốc."}
+      copyrightText={settingsMap.copyrightText}
+    />
   );
 }
 
