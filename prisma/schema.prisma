@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  parentId    Int?
+  parent      Category? @relation("CategoryChildren", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryChildren")
+  products    Product[]
+  banners     Banner[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  logoUrl   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id             Int             @id @default(autoincrement())
+  name           String
+  slug           String          @unique
+  shortDesc      String?
+  description    String?
+  price          Decimal
+  discountPrice  Decimal?
+  stock          Int             @default(0)
+  rating         Float           @default(0)
+  sold           Int             @default(0)
+  featured       Boolean         @default(false)
+  specs          Json?
+  thumbnailUrl   String?
+  categoryId     Int
+  brandId        Int?
+  category       Category        @relation(fields: [categoryId], references: [id])
+  brand          Brand?          @relation(fields: [brandId], references: [id])
+  images         ProductImage[]
+  variants       ProductVariant[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  url       String
+  alt       String?
+  isPrimary Boolean @default(false)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductVariant {
+  id          Int      @id @default(autoincrement())
+  name        String
+  sku         String?  @unique
+  price       Decimal?
+  stock       Int      @default(0)
+  attributes  Json?
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Banner {
+  id          Int       @id @default(autoincrement())
+  title       String
+  subtitle    String?
+  imageUrl    String
+  link        String?
+  position    String    @default("home")
+  order       Int       @default(0)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  isActive    Boolean   @default(true)
+  startsAt    DateTime? 
+  endsAt      DateTime? 
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Article {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  excerpt     String?
+  content     String
+  thumbnail   String?
+  publishedAt DateTime? 
+  category    String    @default("news")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  passwordHash   String
+  name           String?
+  phone          String?   @unique
+  gender         Gender?
+  avatarUrl      String?
+  emailVerifiedAt DateTime?
+  role           UserRole  @default(USER)
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  lastLoginIp    String?
+  lastLoginUa    String?
+  orders         Order[]
+  otps           Otp[]
+  refreshTokens  RefreshToken[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Order {
+  id            Int            @id @default(autoincrement())
+  code          String         @unique
+  status        OrderStatus    @default(PENDING)
+  totalAmount   Decimal
+  shippingFee   Decimal        @default(0)
+  paymentMethod String
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  shippingAddress String
+  notes         String?
+  items         OrderItem[]
+  userId        Int?
+  user          User?          @relation(fields: [userId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  productName String
+  quantity    Int      @default(1)
+  unitPrice   Decimal
+  totalPrice  Decimal
+  productId   Int?
+  variantId   Int?
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  EDITOR
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+model Otp {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  code      String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+enum OtpPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  tokenHash  String   @unique
+  deviceId   String?
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
