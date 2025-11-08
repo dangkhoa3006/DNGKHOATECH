@@ -66,6 +66,21 @@ export async function SiteHeader() {
     settingsMap[setting.key] = value;
   });
 
+  // Parse hot keywords
+  let hotKeywords: string[] = [];
+  if (settingsMap.hotKeywords) {
+    if (Array.isArray(settingsMap.hotKeywords)) {
+      hotKeywords = settingsMap.hotKeywords;
+    } else if (typeof settingsMap.hotKeywords === "string") {
+      try {
+        hotKeywords = JSON.parse(settingsMap.hotKeywords);
+      } catch {
+        // Nếu không phải JSON, thử split bằng dấu phẩy
+        hotKeywords = settingsMap.hotKeywords.split(",").map((k: string) => k.trim()).filter(Boolean);
+      }
+    }
+  }
+
   return (
     <SiteHeaderClient
       headerTopMenu={headerTopMenu}
@@ -75,6 +90,8 @@ export async function SiteHeader() {
       phoneNumber={settingsMap.phoneNumber || "1800 1060"}
       storeLink={settingsMap.storeLink || "/he-thong-sieu-thi"}
       storeText={settingsMap.storeText || "Hệ thống 3.000+ cửa hàng"}
+      hotKeywords={hotKeywords.length > 0 ? hotKeywords : undefined}
+      searchPlaceholder={settingsMap.searchPlaceholder || "Bạn cần tìm gì hôm nay?"}
     />
   );
 }

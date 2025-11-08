@@ -83,6 +83,8 @@ export default function SettingsPage() {
           storeLink: { key: "storeLink", value: getSetting("storeLink", ""), type: "string", group: "header" },
           storeText: { key: "storeText", value: getSetting("storeText", ""), type: "string", group: "header" },
           siteName: { key: "siteName", value: getSetting("siteName", ""), type: "string", group: "header" },
+          searchPlaceholder: { key: "searchPlaceholder", value: getSetting("searchPlaceholder", ""), type: "string", group: "header" },
+          hotKeywords: { key: "hotKeywords", value: getSetting("hotKeywords", []), type: "json", group: "header" },
         },
         footer: {
           siteDescription: { key: "siteDescription", value: getSetting("siteDescription", ""), type: "string", group: "footer" },
@@ -105,7 +107,7 @@ export default function SettingsPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               key: setting.key,
-              value: String(setting.value),
+              value: setting.type === "json" ? JSON.stringify(setting.value) : String(setting.value),
               type: setting.type,
               group: setting.group,
             }),
@@ -242,6 +244,40 @@ export default function SettingsPage() {
                       placeholder="Hệ thống 3.000+ cửa hàng"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="searchPlaceholder">Placeholder thanh tìm kiếm</Label>
+                    <Input
+                      id="searchPlaceholder"
+                      value={getSetting("searchPlaceholder", "Bạn cần tìm gì hôm nay?")}
+                      onChange={(e) => updateSetting("searchPlaceholder", e.target.value)}
+                      placeholder="Bạn cần tìm gì hôm nay?"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotKeywords">Từ khóa tìm kiếm nhiều (mỗi từ khóa một dòng)</Label>
+                    <Textarea
+                      id="hotKeywords"
+                      value={
+                        Array.isArray(getSetting("hotKeywords", []))
+                          ? getSetting("hotKeywords", []).join("\n")
+                          : typeof getSetting("hotKeywords") === "string"
+                          ? getSetting("hotKeywords").replace(/,/g, "\n")
+                          : "iPhone 15 Pro Max\nGalaxy S24 Ultra\nMacBook Air M3\nXiaomi Pad 6"
+                      }
+                      onChange={(e) => {
+                        const keywords = e.target.value
+                          .split("\n")
+                          .map((k) => k.trim())
+                          .filter(Boolean);
+                        updateSetting("hotKeywords", keywords);
+                      }}
+                      placeholder="iPhone 15 Pro Max&#10;Galaxy S24 Ultra&#10;MacBook Air M3&#10;Xiaomi Pad 6"
+                      rows={5}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Mỗi từ khóa trên một dòng. Ví dụ: iPhone 15 Pro Max
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Button onClick={() => handleSave("header")} disabled={isSaving}>
                       <Save className="mr-2 h-4 w-4" />
@@ -302,7 +338,7 @@ export default function SettingsPage() {
                         <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
                           <div className="relative flex-1">
                             <Input
-                              placeholder="Bạn cần tìm gì hôm nay?"
+                              placeholder={getSetting("searchPlaceholder", "Bạn cần tìm gì hôm nay?")}
                               className="h-12 rounded-lg border-2 border-primary/40 pr-24 text-sm"
                               readOnly
                             />
@@ -310,6 +346,28 @@ export default function SettingsPage() {
                               Tìm kiếm
                             </Button>
                           </div>
+                          {(() => {
+                            const keywords = Array.isArray(getSetting("hotKeywords", []))
+                              ? getSetting("hotKeywords", [])
+                              : typeof getSetting("hotKeywords") === "string"
+                              ? getSetting("hotKeywords").split(",").map((k: string) => k.trim()).filter(Boolean)
+                              : [];
+                            return keywords.length > 0 ? (
+                              <div className="hidden flex-col text-xs text-muted-foreground md:flex">
+                                <span className="font-medium">Tìm kiếm nhiều:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {keywords.slice(0, 4).map((item: string) => (
+                                    <span
+                                      key={item}
+                                      className="rounded-full bg-muted px-3 py-1 text-xs"
+                                    >
+                                      {item}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
                         </div>
                         <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
                           <Link href="/account" className="flex items-center gap-2 hover:text-primary">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit, Trash2, ArrowUp, ArrowDown, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowUp, ArrowDown, Save, X, Eye } from "lucide-react";
 import { CMSLayout } from "@/components/cms/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export default function MenuManagementPage() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     label: "",
@@ -204,6 +205,10 @@ export default function MenuManagementPage() {
             <h1 className="text-3xl font-bold tracking-tight">Quản lý Menu</h1>
             <p className="text-sm text-muted-foreground">Quản lý menu items cho header và footer</p>
           </div>
+          <Button type="button" variant="outline" onClick={() => setShowPreview(!showPreview)}>
+            <Eye className="mr-2 h-4 w-4" />
+            {showPreview ? "Ẩn" : "Hiện"} Preview
+          </Button>
         </div>
 
         <Card>
@@ -398,6 +403,102 @@ export default function MenuManagementPage() {
             </Card>
           );
         })}
+
+        {showPreview && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview Header Menu</CardTitle>
+                <CardDescription>Xem trước menu trên header</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden bg-white">
+                  <div className="bg-primary px-4 py-2 text-sm text-primary-foreground">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span>☰</span>
+                        <span>Mua hàng nhanh - Giao tận nơi</span>
+                      </div>
+                      <div className="hidden items-center gap-6 md:flex">
+                        {menuItems
+                          .filter((item) => item.position === "HEADER_TOP" && item.isActive)
+                          .slice(0, 2)
+                          .map((item) => (
+                            <Link key={item.id} href={item.href} className="flex items-center gap-2">
+                              {item.icon && <span>{item.icon}</span>}
+                              <span>{item.label}</span>
+                            </Link>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4 px-4 py-4 md:flex-row md:items-center">
+                    <div className="flex items-center gap-4">
+                      <Link href="/" className="text-2xl font-black text-primary">
+                        TGDD Clone
+                      </Link>
+                      <div className="hidden items-center gap-3 text-xs font-medium text-muted-foreground lg:flex">
+                        {menuItems
+                          .filter((item) => item.position === "HEADER_NAV" && item.isActive)
+                          .slice(0, 5)
+                          .map((item) => (
+                            <Link key={item.id} href={item.href} className="hover:text-primary">
+                              {item.label}
+                            </Link>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview Footer Menu</CardTitle>
+                <CardDescription>Xem trước menu trên footer</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden bg-gray-50">
+                  <div className="grid grid-cols-4 gap-4 px-6 py-8">
+                    {[1, 2, 3, 4].map((col) => (
+                      <div key={col} className="space-y-2">
+                        <h3 className="font-semibold text-sm">Cột {col}</h3>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {menuItems
+                            .filter(
+                              (item) =>
+                                item.position === `FOOTER_COLUMN_${col}` && item.isActive
+                            )
+                            .slice(0, 5)
+                            .map((item) => (
+                              <li key={item.id}>
+                                <Link href={item.href} className="hover:text-primary">
+                                  {item.label}
+                                </Link>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t px-6 py-4">
+                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                      {menuItems
+                        .filter((item) => item.position === "FOOTER_BOTTOM" && item.isActive)
+                        .slice(0, 5)
+                        .map((item) => (
+                          <Link key={item.id} href={item.href} className="hover:text-primary">
+                            {item.label}
+                          </Link>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CMSLayout>
   );

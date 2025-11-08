@@ -14,6 +14,7 @@ interface Category {
   description?: string | null;
   parentId?: number | null;
   _count?: { products: number };
+  children?: Category[];
 }
 
 export default function CategoriesPage() {
@@ -81,30 +82,62 @@ export default function CategoriesPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center justify-between rounded-lg border bg-muted/40 p-4"
-                  >
-                    <div>
-                      <p className="font-medium">{category.name}</p>
-                      <p className="text-sm text-muted-foreground">{category.slug}</p>
-                      {category.description && (
-                        <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
-                      )}
-                      {category._count && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {category._count.products} sản phẩm
-                        </p>
+                {categories
+                  .filter((cat) => !cat.parentId) // Chỉ hiển thị categories chính
+                  .map((category) => (
+                    <div key={category.id} className="space-y-2">
+                      <div className="flex items-center justify-between rounded-lg border bg-muted/40 p-4">
+                        <div>
+                          <p className="font-medium">{category.name}</p>
+                          <p className="text-sm text-muted-foreground">{category.slug}</p>
+                          {category.description && (
+                            <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
+                          )}
+                          {category._count && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {category._count.products} sản phẩm
+                              {category.children && category.children.length > 0 && (
+                                <span className="ml-2">
+                                  • {category.children.length} danh mục con
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/cms/categories/${category.id}/edit`}>Chỉnh sửa</Link>
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Hiển thị sub-categories */}
+                      {category.children && category.children.length > 0 && (
+                        <div className="ml-6 space-y-2 border-l-2 border-muted pl-4">
+                          {category.children.map((child) => (
+                            <div
+                              key={child.id}
+                              className="flex items-center justify-between rounded-lg border bg-background p-3"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">{child.name}</p>
+                                <p className="text-xs text-muted-foreground">{child.slug}</p>
+                                {child._count && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {child._count.products} sản phẩm
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                  <Link href={`/cms/categories/${child.id}/edit`}>Chỉnh sửa</Link>
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/cms/categories/${category.id}/edit`}>Chỉnh sửa</Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </CardContent>

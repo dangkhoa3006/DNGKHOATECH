@@ -26,9 +26,11 @@ interface SiteHeaderClientProps {
   phoneNumber?: string;
   storeLink?: string;
   storeText?: string;
+  hotKeywords?: string[];
+  searchPlaceholder?: string;
 }
 
-const HOT_KEYWORDS = [
+const DEFAULT_HOT_KEYWORDS = [
   "iPhone 15 Pro Max",
   "Galaxy S24 Ultra",
   "MacBook Air M3",
@@ -43,6 +45,8 @@ export function SiteHeaderClient({
   phoneNumber = "1800 1060",
   storeLink = "/he-thong-sieu-thi",
   storeText = "Hệ thống 3.000+ cửa hàng",
+  hotKeywords = DEFAULT_HOT_KEYWORDS,
+  searchPlaceholder = "Bạn cần tìm gì hôm nay?",
 }: SiteHeaderClientProps) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -115,28 +119,30 @@ export function SiteHeaderClient({
             <Input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Bạn cần tìm gì hôm nay?"
+              placeholder={searchPlaceholder}
               className="h-12 rounded-lg border-2 border-primary/40 pr-24 text-sm focus-visible:border-primary focus-visible:ring-0"
             />
             <Button type="submit" className="absolute right-1 top-1 h-10 rounded-md px-5 text-sm">
               Tìm kiếm
             </Button>
           </form>
-          <div className="hidden flex-col text-xs text-muted-foreground md:flex">
-            <span className="font-medium">Tìm kiếm nhiều:</span>
-            <div className="flex flex-wrap gap-2">
-              {HOT_KEYWORDS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setKeyword(item)}
-                  className="rounded-full bg-muted px-3 py-1 text-xs hover:bg-primary/10"
-                >
-                  {item}
-                </button>
-              ))}
+          {hotKeywords.length > 0 && (
+            <div className="hidden flex-col text-xs text-muted-foreground md:flex">
+              <span className="font-medium">Tìm kiếm nhiều:</span>
+              <div className="flex flex-wrap gap-2">
+                {hotKeywords.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setKeyword(item)}
+                    className="rounded-full bg-muted px-3 py-1 text-xs hover:bg-primary/10"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
           <Link href="/account" className="flex items-center gap-2 hover:text-primary">

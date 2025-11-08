@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Save } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft, Save, Eye } from "lucide-react";
 import { CMSLayout } from "@/components/cms/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProductImageManager } from "@/components/cms/product-image-manager";
 import { ProductVariantManager } from "@/components/cms/product-variant-manager";
+import { formatCurrency, calcDiscountPercent } from "@/lib/format";
+import { ProductVariantSelector } from "@/components/store/product-variant-selector";
 
 interface Category {
   id: number;
@@ -43,6 +46,7 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
@@ -242,14 +246,20 @@ export default function EditProductPage() {
   return (
     <CMSLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Chỉnh sửa sản phẩm</h1>
-            <p className="text-sm text-muted-foreground">Cập nhật thông tin sản phẩm</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Chỉnh sửa sản phẩm</h1>
+              <p className="text-sm text-muted-foreground">Cập nhật thông tin sản phẩm</p>
+            </div>
           </div>
+          <Button type="button" variant="outline" onClick={() => setShowPreview(!showPreview)}>
+            <Eye className="mr-2 h-4 w-4" />
+            {showPreview ? "Ẩn" : "Hiện"} Preview
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -453,6 +463,163 @@ export default function EditProductPage() {
             </div>
           </div>
         </form>
+
+        {showPreview && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview Product Card</CardTitle>
+                <CardDescription>Xem trước sản phẩm trên trang danh sách</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-xl border bg-background shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                  <div className="relative flex items-center justify-center bg-white p-6">
+                    {images[0]?.url ? (
+                      <Image
+                        src={images[0].url}
+                        alt={formData.name || "Sản phẩm"}
+                        width={320}
+                        height={320}
+                        className="h-40 w-40 object-contain transition group-hover:scale-105"
+                        sizes="(max-width: 640px) 160px, 200px"
+                      />
+                    ) : (
+                      <div className="flex h-32 w-32 items-center justify-center rounded bg-muted text-muted-foreground">
+                        Không có ảnh
+                      </div>
+                    )}
+                    {formData.discountPrice && formData.price && Number(formData.discountPrice) < Number(formData.price) ? (
+                      <span className="absolute right-4 top-4 rounded-full bg-red-500 px-2 py-1 text-xs font-semibold text-white shadow">
+                        Giảm {calcDiscountPercent(Number(formData.price), Number(formData.discountPrice))}%
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 px-5 pb-4 pt-2">
+                    <h3 className="line-clamp-2 text-sm font-semibold text-foreground transition group-hover:text-primary">
+                      {formData.name || "Tên sản phẩm"}
+                    </h3>
+                    <div className="flex items-end gap-2">
+                      <span className="text-lg font-bold text-red-500">
+                        {formatCurrency(formData.discountPrice ? Number(formData.discountPrice) : formData.price ? Number(formData.price) : 0)}
+                      </span>
+                      {formData.discountPrice && formData.price && Number(formData.discountPrice) < Number(formData.price) ? (
+                        <span className="text-sm text-muted-foreground line-through">
+                          {formatCurrency(Number(formData.price))}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <span>⭐</span>
+                        0.0
+                      </span>
+                      <span>Đã bán 0</span>
+                    </div>
+                  </div>
+                  <div className="px-5 pb-4">
+                    <Button variant="secondary" className="w-full gap-2" disabled>
+                      🛒 Thêm vào giỏ
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Preview Product Detail</CardTitle>
+                <CardDescription>Xem trước trang chi tiết sản phẩm</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  {images[0]?.url ? (
+                    <div className="flex justify-center">
+                      <Image
+                        src={images[0].url}
+                        alt={formData.name || "Sản phẩm"}
+                        width={600}
+                        height={600}
+                        className="h-80 w-full max-w-md object-contain"
+                        sizes="(min-width: 1024px) 480px, 80vw"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-80 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      Chưa có hình sản phẩm
+                    </div>
+                  )}
+                  {images.length > 1 && (
+                    <div className="mt-4 grid grid-cols-4 gap-3">
+                      {images.slice(0, 4).map((image, index) => (
+                        <Image
+                          key={index}
+                          src={image.url}
+                          alt={formData.name || "Sản phẩm"}
+                          width={160}
+                          height={160}
+                          className="h-20 w-full rounded-lg border object-contain p-2"
+                          sizes="120px"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  <h1 className="text-2xl font-bold">{formData.name || "Tên sản phẩm"}</h1>
+                  {formData.shortDesc && (
+                    <p className="mt-2 text-muted-foreground">{formData.shortDesc}</p>
+                  )}
+                  <div className="mt-4 flex items-center gap-4">
+                    <span className="text-3xl font-bold text-red-500">
+                      {formatCurrency(formData.discountPrice ? Number(formData.discountPrice) : formData.price ? Number(formData.price) : 0)}
+                    </span>
+                    {formData.discountPrice && formData.price && Number(formData.discountPrice) < Number(formData.price) ? (
+                      <>
+                        <span className="text-xl text-muted-foreground line-through">
+                          {formatCurrency(Number(formData.price))}
+                        </span>
+                        <span className="rounded bg-red-100 px-2 py-1 text-sm font-semibold text-red-600">
+                          Giảm {calcDiscountPercent(Number(formData.price), Number(formData.discountPrice))}%
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                  {variants.length > 0 && (
+                    <div className="mt-4">
+                      <ProductVariantSelector
+                        variants={variants.map((v) => ({
+                          id: v.id || 0,
+                          name: v.name,
+                          sku: v.sku || null,
+                          price: v.price || null,
+                          stock: v.stock,
+                          attributes: v.attributes || null,
+                        }))}
+                        basePrice={formData.price ? Number(formData.price) : 0}
+                        baseStock={formData.stock ? Number(formData.stock) : 0}
+                      />
+                    </div>
+                  )}
+                  <div className="mt-6">
+                    <Button className="w-full" size="lg" disabled>
+                      Thêm vào giỏ hàng
+                    </Button>
+                  </div>
+                </div>
+
+                {formData.description && (
+                  <div className="rounded-2xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-4 text-xl font-bold">Mô tả sản phẩm</h2>
+                    <div className="prose prose-sm max-w-none">
+                      <p className="whitespace-pre-wrap">{formData.description}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </CMSLayout>
   );

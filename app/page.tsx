@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/store/site-header";
 import { SiteFooter } from "@/components/store/site-footer";
 import { CategoryGrid } from "@/components/store/category-grid";
 import { ProductCard } from "@/components/store/product-card";
+import { BannerSlider } from "@/components/store/banner-slider";
 import { serializeProduct, serializeCategory } from "@/lib/serializers";
 
 export default async function HomePage() {
@@ -62,7 +63,6 @@ export default async function HomePage() {
       }),
     ]);
 
-  const primaryBanner = heroBanners[0] ?? null;
   const secondaryBanners = heroBanners.slice(1, 4);
 
   return (
@@ -70,37 +70,16 @@ export default async function HomePage() {
       <SiteHeader />
       <main className="container mx-auto space-y-12 px-4 py-10">
         <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-          {primaryBanner ? (
-            <Link
-              href={primaryBanner.link ?? "#"}
-              className="relative block overflow-hidden rounded-2xl bg-black/80"
-            >
-              <div className="relative h-64 w-full">
-                <Image
-                  src={primaryBanner.imageUrl}
-                  alt={primaryBanner.title}
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 1024px) 66vw, 100vw"
-                  priority
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-black/10 to-transparent" />
-              <div className="absolute bottom-6 left-6 space-y-2 text-white">
-                <span className="rounded-full bg-primary/90 px-3 py-1 text-xs font-semibold uppercase">
-                  Nổi bật
-                </span>
-                <h2 className="text-2xl font-bold lg:text-3xl">{primaryBanner.title}</h2>
-                {primaryBanner.subtitle ? (
-                  <p className="max-w-xl text-sm text-white/80">{primaryBanner.subtitle}</p>
-                ) : null}
-              </div>
-            </Link>
-          ) : (
-            <div className="flex h-64 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-              Đang cập nhật banner
-            </div>
-          )}
+          {/* Banner Slider */}
+          <BannerSlider
+            banners={heroBanners}
+            autoPlay={true}
+            autoPlayInterval={5000}
+            showDots={true}
+            showArrows={true}
+          />
+          
+          {/* Secondary Banners */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             {secondaryBanners.map((banner) => (
               <Link

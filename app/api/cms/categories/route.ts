@@ -32,6 +32,12 @@ export async function GET() {
       orderBy: { name: "asc" },
       include: {
         _count: { select: { products: true } },
+        children: {
+          orderBy: { name: "asc" },
+          include: {
+            _count: { select: { products: true } },
+          },
+        },
       },
     });
 
