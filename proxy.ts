@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "dev_access_secret";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { nextUrl, cookies } = request;
   const pathname = nextUrl.pathname;
 
@@ -52,5 +52,4 @@ export const config = {
     "/((?!api|_next/static|_next/image|favicon.ico|_next/data).*)",
   ],
 };
-
 

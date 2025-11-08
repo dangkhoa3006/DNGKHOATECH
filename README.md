@@ -208,7 +208,7 @@ npm run lint
 - ✅ **Đăng xuất**: `/api/auth/logout`
   - Xóa cookies và refresh token
 
-- ✅ **Middleware bảo vệ routes**:
+- ✅ **Proxy bảo vệ routes**:
   - Chặn truy cập `/account` và `/cms` nếu chưa đăng nhập
   - Chỉ ADMIN mới truy cập được `/cms`
   - Redirect về trang ban đầu sau khi đăng nhập
@@ -294,7 +294,7 @@ cms/
 │       └── avatars/        # User avatars
 ├── scripts/                 # Utility scripts
 │   └── create-admin.ts    # Script tạo admin
-├── middleware.ts           # Next.js middleware (auth)
+├── proxy.ts                # Next.js proxy (auth)
 ├── .env                    # Environment variables (không commit)
 └── package.json
 ```
@@ -303,9 +303,9 @@ cms/
 
 ### Lỗi: "Cannot find module '@/lib/jwt'"
 
-**Nguyên nhân**: Middleware không hỗ trợ alias imports.
+**Nguyên nhân**: Proxy không hỗ trợ alias imports.
 
-**Giải pháp**: Đã fix trong code, middleware sử dụng direct import `jsonwebtoken`.
+**Giải pháp**: Đã fix trong code, proxy sử dụng direct import `jsonwebtoken`.
 
 ### Lỗi: "The table main.User does not exist"
 
